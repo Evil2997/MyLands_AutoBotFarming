@@ -9,6 +9,7 @@ import pyautogui as pg
 import pytesseract.pytesseract
 
 from Imports.tesseract import setup_tesseract
+from core.gate.gate_status import GateStatus
 
 
 def delay(a: float = 1, b: float = 2) -> float:
@@ -44,27 +45,26 @@ def go_in_city(city_number: int) -> None:
             break
 
 
-def scan_area_and_extract_text(region: Tuple[int, int, int, int]) -> str:
-    x1, y1, x2, y2 = region
-    screenshot = pg.screenshot(region=(x1, y1, x2 - x1, y2 - y1))
+def scan_area_and_extract_text(region: tuple[int, int, int, int]) -> str:
+    screenshot = pg.screenshot(region=region)
     text = pytesseract.image_to_string(screenshot, config=config)
     return text
 
 
-def check_is_free(region: Tuple[int, int, int, int]) -> int:
+def check_is_free(region: tuple[int, int, int, int]) -> int:
     numbers_in_missions = scan_area_and_extract_text(region)
     x, y = map(int, numbers_in_missions.split('/'))
     return y - x
 
 
 def scan_one_cell(
-        region: Tuple[int, int, int, int],
+        region: tuple[int, int, int, int],
         missions: int,
         researchers: int,
-        target_color: Tuple[int, int, int] = (255, 255, 255),
+        target_color: tuple[int] = (255, 255, 255),
         tolerance: int = 10,
         required_percentage: int = 90
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """
         ToDo
             Найти значения для цвета, маски и процентного соотношения нужного цвета в одной клетке.
@@ -82,8 +82,7 @@ def scan_one_cell(
     Returns:
         Tuple[int, int]: Updated counts of missions and researchers.
     """
-    x1, y1, x2, y2 = region
-    screenshot = np.array(pg.screenshot(region=(x1, y1, x2 - x1, y2 - y1)))
+    screenshot = np.array(pg.screenshot(region=region))
 
     lower_bound = np.array([c - tolerance for c in target_color])
     upper_bound = np.array([c + tolerance for c in target_color])
@@ -135,7 +134,7 @@ def scan_all_cells(city_number, start_x=384, start_y=164, cell_width=123, cell_h
         # break
 
 
-def send_explorer(x1, y1, x2, y2):
+def send_explorer(region: tuple[int, int, int, int]):
     """
         Функция для отправки исследователя.
         Args:
@@ -152,17 +151,28 @@ def send_explorer(x1, y1, x2, y2):
     print("Исследователь отправлен!")
 
 
-def send_a_researchers(city_number, x1, y1, x2, y2):
+def send_a_researchers(
+        city_number: int,
+        region: tuple[int, int, int, int]
+)->tuple[int, int]:
     missions = check_is_free(MISSIONS)
     go_in_city(city_number)
     researchers = check_is_free(RESEARCHERS)
 
-    missions, researchers = scan_one_cell(x1, y1, x2, y2, missions, researchers)
+    missions, researchers = scan_one_cell(
+        region=region,
+        missions=missions,
+        researchers=researchers,
+    )
     # TODO: return координат заменить на отправку исследователей
     return missions, researchers
 
 
-def check_gates(region, status_now, threshold=0.92):
+def check_gates(
+        region: tuple[int, int, int, int],
+        status_now: GateStatus.now,
+        threshold: float=0.92
+) -> tuple[int, int] | None:
     """
         status_now (str): "close" or "open"
         :return top_left (int, int)
@@ -187,7 +197,9 @@ def check_gates(region, status_now, threshold=0.92):
     return None
 
 
-def open_or_close_gates(find_gates):
+def open_or_close_gates(
+        find_gates:tuple[int, int],
+) -> None:
     """
         Клик по найденным воротам на кусочке экрана
         Подтверждение действия (кнопка Да)
@@ -197,21 +209,20 @@ def open_or_close_gates(find_gates):
     real_click(gate_YES)
 
 
-def all_gates_open_or_close(status_now):
+def all_gates_open_or_close(
+        status_now: GateStatus.now
+) -> None:
     """
     "Открыть" или "Закрыть" ворота во всех городах
     """
-    if status_now == "open":
-        status = "Открытые"
-    elif status_now == "close":
-        status = "Закрытые"
     for i in range(CITY_NUMERICS):
         go_in_city(CITIES[f"City_{i}"]['city_number'])
-        find_gates = check_gates(gate_here, status_now)
-        if find_gates is not None:
+        find_gates = check_gates(
+            region=gate_here,
+            status_now=status_now,
+        )
+        if find_gates:
             open_or_close_gates(find_gates)
-        else:
-            print(f"Не удалось найти {status} ворота в городе: {CITIES[f"City_{i}"]['city_number']}")
 
 
 def main():
