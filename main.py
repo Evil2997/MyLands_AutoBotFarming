@@ -9,6 +9,8 @@ import pyautogui as pg
 import pytesseract.pytesseract
 
 from Imports.tesseract import setup_tesseract
+from constants.cities import CITY_NUMERICS, CITIES
+from constants.others import *
 from core.gate.gate_status import GateStatus
 
 
@@ -151,7 +153,7 @@ def send_explorer(region: tuple[int, int, int, int]):
     print("Исследователь отправлен!")
 
 
-def send_a_researchers(
+def get_cell_coordinate_to_send_researcher(
         city_number: int,
         region: tuple[int, int, int, int]
 )->tuple[int, int]:
@@ -205,8 +207,8 @@ def open_or_close_gates(
         Подтверждение действия (кнопка Да)
     """
     find_gates_region = (find_gates[0] - 10, find_gates[1] - 10, find_gates[0] + 10, find_gates[1] + 10)
-    real_click(find_gates_region)
-    real_click(gate_YES)
+    for click_here in [find_gates_region, gate_YES]:
+        real_click(click_here)
 
 
 def all_gates_open_or_close(
@@ -237,51 +239,6 @@ def main():
 
 
 if __name__ == '__main__':
-    MISSIONS = (429, 976, 464, 992)
-    RESEARCHERS = (832, 664, 868, 681)
-    CITY_NUMERICS = 7
-    CITIES = {
-        "City_0": {
-            "city_number": 1,
-            "region": (833, 219, 1037, 232),
-        },
-
-        "City_1": {
-            "city_number": 2,
-            "region": (833, 237, 1037, 252),
-        },
-
-        "City_2": {
-            "city_number": 3,
-            "region": (833, 261, 1037, 277),
-        },
-
-        "City_3": {
-            "city_number": 4,
-            "region": (833, 283, 1037, 297),
-        },
-
-        "City_4": {
-            "city_number": 5,
-            "region": (833, 306, 1037, 322),
-        },
-
-        "City_5": {
-            "city_number": 6,
-            "region": (833, 325, 1037, 344),
-        },
-
-        "City_6": {
-            "city_number": 7,
-            "region": (833, 347, 1037, 368),
-        },
-
-    }
-
-    gate_YES = (841, 613, 926, 646)
-    gate_here = (1227, 541, 1338, 636)
-    city_menu = (820, 157, 1038, 213)
-
     setup_tesseract()
     config = r'--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789/'
 
